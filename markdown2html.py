@@ -7,6 +7,43 @@ import sys
 import os
 import re
 
+def parse_custom_markdown(md_content):
+    """
+    Parses custom Markdown content, specifically handling unordered lists.
+
+    Args:
+        md_content (str): The raw Markdown content as a string.
+
+    Returns:
+        str: The parsed HTML content as a string.
+    """
+    lines = md_content.splitlines()
+    html_output = []
+    in_list = False
+
+    for line in lines:
+        stripped_line = line.strip()
+
+        if stripped_line.startswith('- '):
+            # Start of a list item
+            if not in_list:
+                html_output.append('<ul>')
+                in_list = True
+            item_text = stripped_line[2:].strip()
+            html_output.append(f'<li>{item_text}</li>')
+        else:
+            # End of a list
+            if in_list:
+                html_output.append('</ul>')
+                in_list = False
+            html_output.append(line)
+
+    # Close any unclosed list at the end of the document
+    if in_list:
+        html_output.append('</ul>')
+
+    return "\n".join(html_output)
+
 def convert_markdown_to_html(input_file, output_file):
     """
     Converts a Markdown file to HTML and writes the output to a file.
