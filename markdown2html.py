@@ -16,7 +16,7 @@ import markdown
 
 def parse_custom_markdown(md_content):
     """
-    Parses custom Markdown content, specifically handling unordered lists.
+    Parses custom Markdown content, specifically handling ordered and unordered lists.
     
     Args:
         md_content (str): The raw Markdown content as a string.
@@ -27,27 +27,44 @@ def parse_custom_markdown(md_content):
     lines = md_content.splitlines()
     html_output = []
     in_list = False
+    list_type = None
 
     for line in lines:
         stripped_line = line.strip()
         
-        if stripped_line.startswith('- '):
-            # Start of a list item
+        if stripped_line.startswith('* '):
+            # Start of an ordered list item
+            if not in_list:
+                html_output.append('<ol>')
+                in_list = True
+                list_type = 'ordered'
+            item_text = stripped_line[2:].strip()
+            html_output.append(f'<li>{item_text}</li>')
+        elif stripped_line.startswith('- '):
+            # Start of an unordered list item
             if not in_list:
                 html_output.append('<ul>')
                 in_list = True
+                list_type = 'unordered'
             item_text = stripped_line[2:].strip()
             html_output.append(f'<li>{item_text}</li>')
         else:
             # End of a list
             if in_list:
-                html_output.append('</ul>')
+                if list_type == 'ordered':
+                    html_output.append('</ol>')
+                elif list_type == 'unordered':
+                    html_output.append('</ul>')
                 in_list = False
+                list_type = None
             html_output.append(line)
     
     # Close any unclosed list at the end of the document
     if in_list:
-        html_output.append('</ul>')
+        if list_type == 'ordered':
+            html_output.append('</ol>')
+        elif list_type == 'unordered':
+            html_output.append('</ul>')
     
     return "\n".join(html_output)
 
@@ -67,7 +84,7 @@ def convert_markdown_to_html(input_file, output_file):
         with open(input_file, 'r', encoding='utf-8') as md_file:
             md_content = md_file.read()
 
-        # Custom parsing for unordered lists
+        # Custom parsing for ordered and unordered lists
         md_content = parse_custom_markdown(md_content)
 
         # Convert the parsed content to HTML
