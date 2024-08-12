@@ -1,19 +1,26 @@
 #!/usr/bin/python3
 """
-A script that converts Markdown to HTML.
+markdown2html.py - A script to convert Markdown files to HTML.
+
+This script takes two command-line arguments:
+1. The name of the Markdown file to be converted.
+2. The name of the output HTML file.
+
+Usage:
+    python3 markdown2html.py input.md output.html
 """
 
 import sys
 import os
-import re
+import markdown
 
 def parse_custom_markdown(md_content):
     """
     Parses custom Markdown content, specifically handling unordered lists.
-
+    
     Args:
         md_content (str): The raw Markdown content as a string.
-
+    
     Returns:
         str: The parsed HTML content as a string.
     """
@@ -23,7 +30,7 @@ def parse_custom_markdown(md_content):
 
     for line in lines:
         stripped_line = line.strip()
-
+        
         if stripped_line.startswith('- '):
             # Start of a list item
             if not in_list:
@@ -37,51 +44,57 @@ def parse_custom_markdown(md_content):
                 html_output.append('</ul>')
                 in_list = False
             html_output.append(line)
-
+    
     # Close any unclosed list at the end of the document
     if in_list:
         html_output.append('</ul>')
-
+    
     return "\n".join(html_output)
 
 def convert_markdown_to_html(input_file, output_file):
     """
-    Converts a Markdown file to HTML and writes the output to a file.
+    Converts a Markdown file to HTML and writes the result to the output file.
+
+    Args:
+        input_file (str): The path to the input Markdown file.
+        output_file (str): The path to the output HTML file.
     """
-    # Check that the Markdown file exists and is a file
-    if not (os.path.exists(input_file) and os.path.isfile(input_file)):
-        print(f"Missing {input_file}", file=sys.stderr)
+    if not os.path.exists(input_file):
+        print(f"Error: The file {input_file} does not exist.")
         sys.exit(1)
 
-    # Read the Markdown file and convert it to HTML
-    with open(input_file, encoding="utf-8") as f:
-        html_lines = []
-        for line in f:
-            # Check for Markdown headings
-            match = re.match(r"^(#+) (.*)$", line)
-            if match:
-                heading_level = len(match.group(1))
-                heading_text = match.group(2)
-                html_lines.append(f"<h{heading_level}>{heading_text}</h{heading_level}>")
-            else:
-                html_lines.append(line.rstrip())
+    try:
+        with open(input_file, 'r', encoding='utf-8') as md_file:
+            md_content = md_file.read()
 
-    # Write the HTML output to a file
-    with open(output_file, "w", encoding="utf-8") as f:
-        f.write("\n".join(html_lines))
+        # Custom parsing for unordered lists
+        md_content = parse_custom_markdown(md_content)
 
-if __name__ == "__main__":
-    # Check that the correct number of arguments were provided
+        # Convert the parsed content to HTML
+        html_content = markdown.markdown(md_content)
+
+        with open(output_file, 'w', encoding='utf-8') as html_file:
+            html_file.write(html_content)
+
+        print(f"Successfully converted {input_file} to {output_file}")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        sys.exit(1)
+
+def main():
+    """
+    Main function to handle command-line arguments and call the conversion function.
+    """
     if len(sys.argv) != 3:
-        print("Usage: ./markdown2html.py <input_file> <output_file>", file=sys.stderr)
+        print("Usage: python3 markdown2html.py <input_file.md> <output_file.html>")
         sys.exit(1)
 
-    # Get the input and output file names from the command-line arguments
     input_file = sys.argv[1]
     output_file = sys.argv[2]
 
-    # Convert the Markdown file to HTML and write the output to a file
     convert_markdown_to_html(input_file, output_file)
 
-    # Exit with a successful status code
-    sys.exit(0)
+if __name__ == "__main__":
+    main()
+
