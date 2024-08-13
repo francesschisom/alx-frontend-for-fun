@@ -16,7 +16,8 @@ import markdown
 
 def parse_custom_markdown(md_content):
     """
-    Parses custom Markdown content, specifically handling ordered and unordered lists.
+    Parses custom Markdown content, specifically handling ordered lists,
+    unordered lists, and paragraphs.
     
     Args:
         md_content (str): The raw Markdown content as a string.
@@ -28,12 +29,15 @@ def parse_custom_markdown(md_content):
     html_output = []
     in_list = False
     list_type = None
+    paragraph_lines = []
 
     for line in lines:
         stripped_line = line.strip()
         
         if stripped_line.startswith('* '):
-            # Start of an ordered list item
+            if paragraph_lines:
+                html_output.append(f"<p>{' '.join(paragraph_lines)}</p>")
+                paragraph_lines = []
             if not in_list:
                 html_output.append('<ol>')
                 in_list = True
@@ -41,15 +45,19 @@ def parse_custom_markdown(md_content):
             item_text = stripped_line[2:].strip()
             html_output.append(f'<li>{item_text}</li>')
         elif stripped_line.startswith('- '):
-            # Start of an unordered list item
+            if paragraph_lines:
+                html_output.append(f"<p>{' '.join(paragraph_lines)}</p>")
+                paragraph_lines = []
             if not in_list:
                 html_output.append('<ul>')
                 in_list = True
                 list_type = 'unordered'
             item_text = stripped_line[2:].strip()
             html_output.append(f'<li>{item_text}</li>')
-        else:
-            # End of a list
+        elif stripped_line == "":
+            if paragraph_lines:
+                html_output.append(f"<p>{' '.join(paragraph_lines)}</p>")
+                paragraph_lines = []
             if in_list:
                 if list_type == 'ordered':
                     html_output.append('</ol>')
@@ -57,9 +65,21 @@ def parse_custom_markdown(md_content):
                     html_output.append('</ul>')
                 in_list = False
                 list_type = None
-            html_output.append(line)
+        else:
+            if in_list:
+                if list_type == 'ordered':
+                    html_output.append('</ol>')
+                elif list_type == 'unordered':
+                    html_output.append('</ul>')
+                in_list = False
+                list_type = None
+            paragraph_lines.append(stripped_line)
+
+    # Close any open paragraphs at the end of the document
+    if paragraph_lines:
+        html_output.append(f"<p>{' '.join(paragraph_lines)}</p>")
     
-    # Close any unclosed list at the end of the document
+    # Close any unclosed lists at the end of the document
     if in_list:
         if list_type == 'ordered':
             html_output.append('</ol>')
@@ -84,7 +104,7 @@ def convert_markdown_to_html(input_file, output_file):
         with open(input_file, 'r', encoding='utf-8') as md_file:
             md_content = md_file.read()
 
-        # Custom parsing for ordered and unordered lists
+        # Custom parsing for ordered lists, unordered lists, and paragraphs
         md_content = parse_custom_markdown(md_content)
 
         # Convert the parsed content to HTML
